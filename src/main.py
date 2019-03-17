@@ -82,9 +82,9 @@ def inline_keyboard_markup_answers(poll: Poll) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(keyboard)
 
 
-def inline_keyboard_markup_admin(poll: Poll) -> InlineKeyboardMarkup:
+def inline_keyboard_markup_admin(poll: Poll, bot: Bot) -> InlineKeyboardMarkup:
     keyboard = [
-        [InlineKeyboardButton("publish", switch_inline_query=str(poll.id))],
+        [InlineKeyboardButton("publish", url=get_share_url(bot.username, poll.id))],
         [InlineKeyboardButton("share link", callback_data=".share {}".format(poll.id))],
         [
             InlineKeyboardButton("update", callback_data=".update {}".format(poll.id)),
@@ -107,7 +107,7 @@ def send_vote_poll(message: Message, poll: Poll):
 
 
 def send_admin_poll(message: Message, poll: Poll):
-    markup = inline_keyboard_markup_admin(poll)
+    markup = inline_keyboard_markup_admin(poll, message.bot)
 
     message.reply_text(
         str(poll),
@@ -378,7 +378,7 @@ def callback_query_vote(bot: Bot, update: Update, groups: Tuple[str, str]):
 
         # in both cases 1 and 2 update the view
         if query.message is not None and poll.owner.id == query.message.chat.id:
-            markup = inline_keyboard_markup_admin(poll)
+            markup = inline_keyboard_markup_admin(poll, bot)
 
         else:
             markup = inline_keyboard_markup_answers(poll)
@@ -417,7 +417,7 @@ def callback_query_update(bot: Bot, update: Update, groups: Tuple[str]):
         text=str(poll),
         parse_mode=None,
         disable_web_page_preview=True,
-        reply_markup=inline_keyboard_markup_admin(poll))
+        reply_markup=inline_keyboard_markup_admin(poll, bot))
 
 
 def callback_query_stats(bot: Bot, update: Update, groups: Tuple[str]):
@@ -489,11 +489,15 @@ def callback_query_share(bot: Bot, update: Update, groups: Tuple[str]):
 
     bot.send_message(
         query.from_user.id,
-        "https://t.me/{}?start=poll_id={}".format(bot.username, poll_id),
+        get_share_url(bot.username, poll_id),
         parse_mode=None,
         disable_web_page_preview=True,
     )
     query.answer()
+
+
+def get_share_url(bot_username, poll_id):
+    return "https://t.me/{}?startgroup=poll_id%3D{}".format(bot_username, poll_id)
 
 
 def callback_query_not_found(bot: Bot, update: Update):
@@ -518,6 +522,7 @@ def main():
     dp = updater.dispatcher
 
     dp.add_handler(RegexHandler("/start poll_id=(.+)", start_with_poll, pass_groups=True))
+    dp.add_handler(RegexHandler("/start@[^\s]+ poll_id=(.+)", start_with_poll, pass_groups=True))
 
     conv_handler = ConversationHandler(
         entry_points=[
