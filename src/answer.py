@@ -92,8 +92,13 @@ class Answer(object):
                 '',
                 max(1, int(relative_percentage * 8)),
                 int(percentage * 100))
-
-        return "{} - {}\n{}".format(self.text, count, bar)
+        voters = []
+        for voter in self.voters():
+            if voter.username is not None:
+                voters.append("@" + voter.username)
+            else:
+                voters.append(voter.first_name)
+        return "{} - {}\n{}\n{}".format(self.text, count, bar, ", ".join(voters))
 
     @classmethod
     def load(cls, poll: 'Poll', answer_id: int) -> Optional['Answer']:
