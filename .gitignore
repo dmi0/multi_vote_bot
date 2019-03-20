@@ -97,3 +97,6 @@ ENV/
 
 # backup script artifacts
 /backup/
+
+# IDE
+.idea
